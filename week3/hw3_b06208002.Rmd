@@ -1,0 +1,148 @@
+---
+title: "hw3_b06208002"
+author: "Cartus You"
+date: "2019年3月10日"
+output: html_document
+---
+
+> Q1
+
+```{r, fig.width = 12, fig.height = 6,warning=FALSE,message=FALSE}
+
+Pollution_Map <- function(agr1){
+  library(spdep)
+  library(rgdal)
+  library(tidyr)
+  library(dplyr)
+  library(sp)
+  library(ggplot2)
+  library(gridExtra)
+  epa_stn <- readOGR(dsn = "D:/107-2 Spatial Analysis/week3", layer = "EPA_STN1", encoding="utf8")
+  tw_popn <- readOGR(dsn = "D:/107-2 Spatial Analysis/week3", layer = "Popn_TWN2", encoding="utf8")
+  PSI <- epa_stn$PSI
+  ex_prob <- qnorm(agr1, mean(PSI), sd(PSI), lower.tail=FALSE)
+  epa_stn$type <- ''
+  
+  
+  for (i in 1:nrow(epa_stn)){
+    if (epa_stn@data[i,11] > ex_prob){
+      epa_stn[i,17] <- 'Exccess'
+      
+    }
+    else {
+      epa_stn[i,17] <- 'Not Exccess'
+    }
+  }
+  
+  
+  exccess <- epa_stn[epa_stn$type == 'Exccess',]
+  n_exccess <- epa_stn[epa_stn$type == 'Not Exccess',]
+  
+  select <- c('一般測站', '工業測站', '交通測站')
+  exccess_stn <- exccess[exccess$SiteType %in% select,]
+  exccess_stn$SiteType <- factor(exccess_stn$SiteType)
+  exccess_stn$x_cor <- exccess_stn@coords[,1]
+  exccess_stn$y_cor <- exccess_stn@coords[,2]
+  
+  base_map <- ggplot(epa_stn@data) + geom_polygon(data=tw_popn, aes(long, lat, group = group), fill="lightgreen", color="gray", size=0.05) +
+    coord_fixed(1.0) + xlim(140000,360000) + ylim(2400000,2800000) + theme(panel.background = element_rect(fill = "#BFD5E3"))
+  point_map <- base_map + geom_point(aes(epa_stn@coords[,1], epa_stn@coords[,2], color=type), size=2) + theme(legend.position=c(0.22, 0.9))
+  box_plot <- ggplot(exccess_stn@data) + geom_boxplot(aes(x=SiteType, y=PSI, fill=SiteType), color='dimgray')
+  grid.arrange(ncol=2, point_map, box_plot)
+  
+  return(ex_prob)
+}
+
+Pollution_Map(0.3)
+Pollution_Map(0.5)
+```
+
+> Q2
+
+## 1.
+```{R,warning=FALSE,message=FALSE}
+library(spdep)
+library(rgdal)
+library(tidyr)
+library(dplyr)
+library(sp)
+library(raster)
+library(ggplot2)
+library(gridExtra)
+tw_popn <- readOGR(dsn = "D:/107-2 Spatial Analysis/week3", layer = "Popn_TWN2", encoding="utf8")
+crs(tw_popn)
+tw_popn$area_sqkm <- area(tw_popn) / 1000000
+tw_popn$popn <- tw_popn$A0A14_CNT + tw_popn$A15A64_CNT + tw_popn$A65UP_CNT
+tw_popn$density <- tw_popn$popn / tw_popn$area_sqkm
+tw_popn$over65 <- tw_popn$A65UP_CNT / tw_popn$popn
+
+tw_popn$brks <- cut(tw_popn$density, breaks=quantile(tw_popn$density, c(0, 0.166, 0.333, 0.5, 0.666, 0.832, 1)),
+                    labels=c("4.43 - 110.03", "110.03 - 336.48", "336.48 - 612.10", "612.10 - 1272.56", "1272.56-3832.20", "3832.20-36049.91"))
+tw_density <- broom::tidy(tw_popn, region = "brks")
+tw_density$id <- factor(tw_density$id, levels = c("4.43 - 110.03", "110.03 - 336.48", "336.48 - 612.10",
+                                            "612.10 - 1272.56", "1272.56-3832.20", "3832.20-36049.91"))
+scale_bar <- data.frame(x1=c(280000, 280000, 300000, 300000), y1=c(2430000, 2435000, 2435000, 2430000),
+                        x2=c(300000, 300000, 320000, 320000), y2=c(2430000, 2435000, 2435000, 2430000))
+
+ggplot(tw_density) + geom_polygon(aes(long, lat, group = group, fill=id), size=0.05) +
+  coord_fixed(1.0) + xlim(100000,360000) + ylim(2400000,2800000) +
+  scale_fill_manual(values=c("#ffe1c7", "#ffc694", "#feac62", "#fe912f", "#f97601", "#a44e01")) +
+  geom_segment(aes(x=350000,xend=350000, y=2450000, yend=2500000),arrow = arrow(length = unit(0.5, "cm"))) +
+  geom_polygon(data=scale_bar, aes(x=x1, y=y1)) + geom_polygon(data=scale_bar, aes(x=x2, y=y2), fill='white') +
+  geom_text(x=350000, y=2520000, label = 'N') + geom_text(x=280000, y=2425000, label = '0') +
+  geom_text(x=300000, y=2425000, label = '20') + geom_text(x=340000, y=2425000, label = '40 km')
+
+```
+
+## 2.
+```{R, warning=FALSE,message=FALSE}
+tpe_popn <- tw_popn[tw_popn$COUNTY_ID %in% c('10002', '10017', '63000', '65000', '68000'),]
+
+tpe_popn$old <- ""
+for (i in 1:nrow(tpe_popn)){
+  if (tpe_popn@data[i,18] > quantile(tpe_popn$over65, prob=0.8)){
+    tpe_popn[i,20] <- 'Top 20% Oldest'
+  }
+  else {
+    tpe_popn[i,20] <- 'Others'
+  }
+}
+
+tpe_elder <- broom::tidy(tpe_popn, region = "old")
+scale_bar2 <- data.frame(x1=c(300000, 300000, 320000, 320000), y1=c(2660000, 2665000, 2665000, 2660000),
+                        x2=c(320000, 320000, 340000, 340000), y2=c(2660000, 2665000, 2665000, 2660000))
+
+ggplot(tpe_elder) + geom_polygon(aes(long, lat, group = group, fill=id), size=0.05) +
+  coord_fixed(1.0) + xlim(240000,360000) + ylim(2650000,2800000) +scale_fill_manual(values=c("royalblue2", "indianred2")) +
+  geom_segment(aes(x=350000,xend=350000, y=2685000, yend=2700000),arrow = arrow(length = unit(0.5, "cm"))) +
+  geom_polygon(data=scale_bar2, aes(x=x1, y=y1)) + geom_polygon(data=scale_bar2, aes(x=x2, y=y2), fill='white') +
+  geom_text(x=350000, y=2710000, label = 'N') + geom_text(x=300000, y=2650000, label = '0') +
+  geom_text(x=320000, y=2425000, label = '20') + geom_text(x=340000, y=2650000, label = '40 km')
+```
+
+## 3.
+```{R,warning=FALSE,message=FALSE}
+tw_popn$type <- ""
+for (i in 1:nrow(tw_popn)){
+  if (tw_popn@data[i,17] > 10000){
+    tw_popn[i,20] <- 'High Population density'
+  }
+  else if(tw_popn@data[i,17] < 2000){
+    tw_popn[i,20] <- 'Low Population density'
+  }
+}
+
+tw_box <- tw_popn[tw_popn$type %in% c('High Population density', 'Low Population density'),]
+
+ggplot(tw_box@data) + geom_boxplot(aes(x=type, y=over65, fill=type), color='dimgray')
+
+```
+
+
+
+
+
+
+
+
+

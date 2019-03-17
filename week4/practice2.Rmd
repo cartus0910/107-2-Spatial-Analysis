@@ -1,0 +1,23 @@
+---
+title: "practice2"
+author: "Cartus You"
+date: "2019¦~3¤ë11¤é"
+output: html_document
+---
+
+```{r,warning=FALSE,message=FALSE}
+library(spdep)
+library(rgdal)
+library(tidyr)
+library(dplyr)
+library(ggplot2)
+library(GISTools)
+
+tpe_vil <- readOGR(dsn = "D:/107-2 Spatial Analysis/week2", layer = "Taipei_Vill", encoding="utf8")
+fastfood <- readOGR(dsn = "D:/107-2 Spatial Analysis/week2", layer = "Tpe_Fastfood", encoding="utf8")
+
+AoI <- fastfood[fastfood$STORE == "MIC",] 
+AoI.buf <- gBuffer(AoI, width = 1000)
+plot(AoI.buf)
+plot(AoI, add = T, border = "blue", pch=19)
+```

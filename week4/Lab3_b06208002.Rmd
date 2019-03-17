@@ -1,0 +1,59 @@
+---
+title: "Lab3_b06208002"
+author: "Cartus You"
+date: "2019¦~3¤ë15¤é"
+output: html_document
+---
+
+> Q1
+
+```{r,warning=FALSE,message=FALSE}
+library(spdep)
+library(rgdal)
+library(GISTools)
+library(scales)
+tpe_vil <- readOGR(dsn = "D:/107-2 Spatial Analysis/week2", layer = "Taipei_Vill", encoding="utf8")
+fastfood <- readOGR(dsn = "D:/107-2 Spatial Analysis/week2", layer = "Tpe_Fastfood", encoding="utf8")
+
+mic_tpe <- fastfood[fastfood$STORE == "MIC" ,]
+mic_buf <- gBuffer(mic_tpe, width = 1000, byid = T)
+mic_count <- poly.counts(mic_tpe, mic_buf) 
+
+tpe_town <- gUnaryUnion(tpe_vil, id=tpe_vil@data$TOWN)
+
+par(mar=c(0,0,0,0))
+plot(tpe_town)
+plot(mic_buf[which.max(mic_count),], add = T,col= alpha('red', 0.4))
+plot(mic_tpe, add = T, pch=16, cex = .7)
+plot(mic_tpe[which.max(mic_count),], add = T, pch=13, col='red')
+text(labels=paste(mic_tpe@data[which.max(mic_count),3]),
+     x=mic_tpe[which.max(mic_count),3]@coords[1]-5000, y=mic_tpe[which.max(mic_count),3]@coords[2])
+
+```
+
+> Q2
+
+```{r,warning=FALSE,message=FALSE}
+
+tpe_vil$centroids <- gCentroid(tpe_vil, byid = T)
+vil_buf <- gBuffer(tpe_vil$centroids, width = 1000, byid = T)
+vil_count <- poly.counts(mic_tpe, vil_buf) 
+mic_within <- gIntersection(vil_buf[which.max(vil_count),], mic_tpe, byid = TRUE) 
+
+par(mar=c(0,0,0,0))
+plot(tpe_vil)
+plot(tpe_vil[which.max(vil_count),], add = T,col='red')
+plot(mic_tpe, add = T, pch=16, cex = .7)
+plot(mic_within, add = T, pch=16, cex = .9, col='green')
+text(x=tpe_vil[which.max(vil_count),]$centroids@coords[1]-3000, y=tpe_vil[which.max(vil_count),]$centroids@coords[2],
+     labels=paste(tpe_vil[which.max(vil_count),]$VILLAGE), col='red')
+
+```
+
+
+
+
+
+
+
+

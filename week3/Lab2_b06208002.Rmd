@@ -1,0 +1,57 @@
+---
+title: "Lab2_b06208002"
+author: "Cartus You"
+date: "2019年3月4日"
+output: html_document
+---
+
+
+```{r, fig.width = 8, fig.height = 6,warning=FALSE,message=FALSE}
+
+Pollution_Map <- function(agr1){
+  library(GISTools)
+  library(spdep)
+  library(rgdal)
+  library(tidyr)
+  library(dplyr)
+  library(RColorBrewer)
+  library(classInt)
+  library(sp)
+  epa_stn <- readOGR(dsn = "D:/107-2 Spatial Analysis/week3", layer = "EPA_STN1", encoding="utf8")
+  tw_popn <- readOGR(dsn = "D:/107-2 Spatial Analysis/week3", layer = "Popn_TWN2", encoding="utf8")
+  PSI <- epa_stn$PSI
+  ex_prob <- qnorm(agr1, mean(PSI), sd(PSI), lower.tail=FALSE)
+  epa_stn$type <- ''
+  
+  
+  for (i in 1:nrow(epa_stn)){
+    if (epa_stn@data[i,11] > ex_prob){
+      epa_stn[i,17] <- 'Exccess'
+      
+    }
+    else {
+      epa_stn[i,17] <- 'Not Exccess'
+    }
+  }
+  
+  
+  exccess <- epa_stn[epa_stn$type == 'Exccess',]
+  n_exccess <- epa_stn[epa_stn$type == 'Not Exccess',]
+  
+  select <- c('一般測站', '工業測站', '交通測站')
+  exccess_stn <- exccess[exccess$SiteType %in% select,]
+  exccess_stn$SiteType <- factor(exccess_stn$SiteType)
+  
+  par(pin = c(2.8, 3.5), mfrow=c(1,2))
+  plot(tw_popn, col='lightgreen', border="grey", bg='aliceblue', xlim=c(210000,240000), ylim=c(2400000,2800000), axes=T)
+  points(exccess, col= 'red', pch = 16)
+  points(n_exccess, col= 'blue', pch = 16)
+  text(140000, 2780000, paste('Ex_Prob:', round(ex_prob,4)))
+  boxplot(PSI ~ SiteType, data =exccess_stn@data, col='gray', axes=T, cex.axis=0.8)
+  
+  return(ex_prob)
+}
+
+Pollution_Map(0.3)
+
+```

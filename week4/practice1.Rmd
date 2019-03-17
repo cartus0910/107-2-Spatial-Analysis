@@ -1,0 +1,35 @@
+---
+title: "practice1_b06208002"
+author: "Cartus You"
+date: "2019&~3$k11$i"
+output: html_document
+---
+
+```{r}
+library(spdep)
+library(rgdal)
+library(tidyr)
+library(dplyr)
+library(ggplot2)
+library(GISTools)
+```
+
+```{r}
+tpe_vil <- readOGR(dsn = "D:/107-2 Spatial Analysis/week2", layer = "Taipei_Vill", encoding="utf8")
+fastfood <- readOGR(dsn = "D:/107-2 Spatial Analysis/week2", layer = "Tpe_Fastfood", encoding="utf8")
+
+daan_map <- tpe_vil[tpe_vil$STORE == "?????????" ,]
+index <- data.frame(gIntersection(daan_map, fastfood, byid = TRUE))
+id <- data.frame(sapply(rownames(index), function(x) strsplit(x, " ")))
+
+new_townid <- as.vector(unlist(id[1,])); new_fastfoodid <- as.vector(unlist(id[2,]))
+table1 <- data.frame(new_townid, new_fastfoodid)
+table1$new_town <- "?????????"
+table1$new_fastfood <- ""
+
+for (i in 1:ncol(id)) {
+  table1[i, 4] <- as.character(fastfood@data[table1$new_fastfoodid[i], 4])
+}
+
+table1
+```

@@ -1,0 +1,71 @@
+---
+title: "HW1_b06208002"
+author: "Cartus You"
+date: "2019年3月2日"
+output: html_document
+---
+
+> Q1
+
+## EDA
+
+```{r,warning=FALSE,message=FALSE}
+library(spdep)
+library(rgdal)
+library(tidyr)
+library(dplyr)
+library(ggplot2)
+library(gridExtra)
+library(grid)
+tpe_vil <- readOGR(dsn = "D:/107-2 Spatial Analysis/week2", layer = "Taipei_Vill", encoding="utf8")
+fastfood <- readOGR(dsn = "D:/107-2 Spatial Analysis/week2", layer = "Tpe_Fastfood", encoding="utf8")
+vill_data <- tpe_vil@data
+fastfood_data <- fastfood@data
+fastfood_data$change_num <- as.numeric(fastfood_data$TYPE_99) - as.numeric(fastfood_data$TYPE_90)
+fastfood_data$type <- ''
+
+#assigning scale change type column
+for (i in 1:nrow(fastfood_data)){
+  if (fastfood_data[i,11] < 0){
+    fastfood_data[i,12] <- 'Scaling-Down'
+  }
+  else if (fastfood_data[i,11] > 0){
+    fastfood_data[i,12] <- 'Scaling-Up'
+  }
+  else if (fastfood_data[i,11] == 0){
+    fastfood_data[i,12] <- 'Remain Constant'
+  }
+}
+
+counting <- fastfood_data %>% group_by(STORE, TOWN, type) %>% count() %>% complete(TOWN, type, fill=list(n=0))
+
+#separate MIC & KFC
+MIC_count <- counting[counting$STORE=='MIC',]
+KFC_count <- counting[counting$STORE=='KFC',]
+```
+
+## Plot
+
+```{R, fig.width = 15, fig.height = 5,warning=FALSE,message=FALSE}
+
+#draw bar chart
+ggplot(counting, aes(x=TOWN, y=n, fill=type)) + geom_bar(stat="identity", position="dodge") +
+  scale_fill_manual(values=c('lightgreen', 'lightcoral','skyblue')) + ylim(0,7) + ylab('Number of Branches') +
+  facet_grid(~ STORE, scales="free_y") + ggtitle("Scale-change Tendancy of McDonald & KFC in Each District of Taipei City from 90-99") +
+  theme(plot.title = element_text(size = 20, face = "bold", hjust = 0.5))
+
+```
+
+## Explanation
+
+#####   **This bar chart shows the number of scaling-up/scaling-down/invariant branches of two main fastfood stores(McDonald & KFC) in each district of Taipei City. Generally, McDonald has more branches than KFC, and for the districts that have apparently more scaling-up branches of McDonald(士林區, 大安區, 內湖區, 北投區), the performance is the same in the scale-change of KFC. But the reverse statement is not acceptable, since McDonald has more scaling-down branches in 萬華區, but KFC have more scaling-up branches in 萬華區.**
+
+
+
+
+
+
+
+
+
+

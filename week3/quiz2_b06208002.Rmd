@@ -1,0 +1,34 @@
+---
+title: "quiz2_b06208002"
+author: "Cartus You"
+date: "2019¦~3¤ë4¤é"
+output: html_document
+---
+
+## Map
+
+```{r, fig.width = 12, fig.height = 12,warning=FALSE,message=FALSE}
+library(spdep)
+library(rgdal)
+library(tidyr)
+library(dplyr)
+library(ggplot2)
+
+tpe_vil <- readOGR(dsn = "D:/107-2 Spatial Analysis/week2", layer = "Taipei_Vill", encoding="utf8")
+fastfood <- readOGR(dsn = "D:/107-2 Spatial Analysis/week2", layer = "Tpe_Fastfood", encoding="utf8")
+vill_data <- tpe_vil@data
+fastfood_data <- fastfood@data
+
+library(GISTools)
+
+vill_feature <- fortify(tpe_vil, region="VILLAGE")
+vill_feature <- merge(vill_feature, vill_data, by.x = "id", by.y = "VILLAGE")
+vill_map <- ggplot() + geom_polygon(data=vill_feature, aes(long, lat, group = group), fill="darkgray", color="white") + coord_fixed(1.0)
+
+#plot the coordinates of stores
+x_cor <- fastfood_data$X_COOR
+y_cor <- fastfood_data$Y_COOR
+vill_map + geom_point(data=fastfood_data, aes(x=X_COOR,y=Y_COOR, color=STORE, size=TYPE_99), stroke = 2, alpha=0.8) +
+  scale_color_manual(values=c("red", "yellow"))
+
+```
